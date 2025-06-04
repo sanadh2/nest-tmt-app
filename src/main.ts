@@ -15,7 +15,6 @@ import cookieParser from 'cookie-parser';
 
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  console.log('env', env);
   if (env.DEBUG_MODE === true) {
     app.useLogger(['log', 'error', 'warn', 'debug', 'verbose']);
   } else {
