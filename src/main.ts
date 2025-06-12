@@ -12,9 +12,19 @@ import { env } from './config/env.validation';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { CsrfMiddleware } from './middleware/csrf.middleware';
 import cookieParser from 'cookie-parser';
+import passport from 'passport';
+import { SessionRenewalMiddleware } from './middleware/renewSession.middleware';
 
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.enableCors({
+    origin: env.CORS_ORIGIN?.split(',') || true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
+  });
+
   if (env.DEBUG_MODE === true) {
     app.useLogger(['log', 'error', 'warn', 'debug', 'verbose']);
   } else {
@@ -26,6 +36,14 @@ export async function bootstrap() {
     .setDescription('Handles user registration, login, session-based auth.')
     .setVersion('1.0')
     .addCookieAuth('connect.sid')
+    .addApiKey(
+    {
+      type: 'apiKey',
+      name: 'X-CSRF-Token',
+      in: 'header',
+    },
+    'csrf-token',
+  )
     .build();
 
   const redisClient = new Redis({
@@ -56,7 +74,12 @@ export async function bootstrap() {
     }),
   );
 
-  // app.use(new CsrfMiddleware().use);
+app.use(new SessionRenewalMiddleware().use  );
+
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  app.use(new CsrfMiddleware().use);
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);

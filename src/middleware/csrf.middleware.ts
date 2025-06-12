@@ -1,10 +1,11 @@
 import csrf from 'csurf';
 import { NestMiddleware, Injectable } from '@nestjs/common';
 import { env } from '../config/env.validation';
+import { NextFunction, Request, Response } from 'express';
 
 @Injectable()
 export class CsrfMiddleware implements NestMiddleware {
-  use(req: any, res: any, next: () => void) {
+  use(req: Request, res: Response, next: NextFunction) {
     return csrf({
       cookie: {
         httpOnly: true,

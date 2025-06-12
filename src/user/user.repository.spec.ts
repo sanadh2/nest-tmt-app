@@ -81,7 +81,12 @@ describe('UserRepository', () => {
 
   describe('createUser', () => {
     it('should hash password, insert user and return id', async () => {
-      const user:CreateUser = { username: 'user1', email: 'u1@example.com', password: 'pass',name:"name" };
+      const user: CreateUser = {
+        username: 'user1',
+        email: 'u1@example.com',
+        password: 'pass',
+        name: 'name',
+      };
       const fakeId = 'fakeid123';
 
       // Mock ObjectId to generate consistent id
@@ -138,7 +143,10 @@ describe('UserRepository', () => {
         }),
       });
 
-      (userToPublicUser as jest.Mock).mockReturnValue({ id: '1', username: 'user' });
+      (userToPublicUser as jest.Mock).mockReturnValue({
+        id: '1',
+        username: 'user',
+      });
 
       const result = await repo.updateUser(updatePayload);
 
@@ -172,7 +180,10 @@ describe('UserRepository', () => {
           }),
         }),
       });
-      (userToPublicUser as jest.Mock).mockReturnValue({ id: '1', isVerified: true });
+      (userToPublicUser as jest.Mock).mockReturnValue({
+        id: '1',
+        isVerified: true,
+      });
 
       const result = await repo.verifyUser('1');
 

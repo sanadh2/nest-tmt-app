@@ -20,7 +20,6 @@ jest.mock('nodemailer-express-handlebars', () => {
   }));
 });
 
-
 const mockRedis = {
   set: jest.fn(),
   get: jest.fn(),
@@ -90,8 +89,8 @@ describe('AuthService', () => {
       isVerified: true,
       name: 'Test User',
       createdAt: new Date(),
-      isDeleted:false,
-      username: null
+      isDeleted: false,
+      username: null,
     };
 
     it('should return user if credentials are valid and user is verified', async () => {
@@ -119,7 +118,9 @@ describe('AuthService', () => {
 
       await expect(
         service.verifyLoginCredentials({ identifier, password }),
-      ).rejects.toThrow(new HttpException('user not found', HttpStatus.NOT_FOUND));
+      ).rejects.toThrow(
+        new HttpException('user not found', HttpStatus.NOT_FOUND),
+      );
       expect(bcrypt.compare).not.toHaveBeenCalled();
     });
 
@@ -134,7 +135,10 @@ describe('AuthService', () => {
       await expect(
         service.verifyLoginCredentials({ identifier, password }),
       ).rejects.toThrow(
-        new HttpException('user is not verified, please verify', HttpStatus.BAD_REQUEST),
+        new HttpException(
+          'user is not verified, please verify',
+          HttpStatus.BAD_REQUEST,
+        ),
       );
       expect(redis.set).toHaveBeenCalledWith(
         'verify-token:mockToken',
@@ -169,8 +173,8 @@ describe('AuthService', () => {
       isVerified: false,
       name: 'Test User',
       createdAt: new Date(),
-      isDeleted:false,
-      username:null
+      isDeleted: false,
+      username: null,
     };
 
     it('should verify the user successfully', async () => {
@@ -224,8 +228,8 @@ describe('AuthService', () => {
       isVerified: false,
       name: 'Test User',
       createdAt: new Date(),
-      isDeleted:false,
-      username:""
+      isDeleted: false,
+      username: '',
     };
 
     it('should resend verification email and return a new token', async () => {
@@ -246,7 +250,10 @@ describe('AuthService', () => {
         identifier,
       );
       expect(redis.incr).toHaveBeenCalledWith(`resend-limit:${mockUser.id}`);
-      expect(redis.expire).toHaveBeenCalledWith(`resend-limit:${mockUser.id}`, 3600);
+      expect(redis.expire).toHaveBeenCalledWith(
+        `resend-limit:${mockUser.id}`,
+        3600,
+      );
       expect(crypto.randomUUID).toHaveBeenCalled();
       expect(redis.set).toHaveBeenCalledWith(
         'verify-token:newToken456',
@@ -264,7 +271,9 @@ describe('AuthService', () => {
 
       await expect(
         service.resendVerificationEmail(identifier, projectId),
-      ).rejects.toThrow(new HttpException('User not found', HttpStatus.NOT_FOUND));
+      ).rejects.toThrow(
+        new HttpException('User not found', HttpStatus.NOT_FOUND),
+      );
       expect(redis.incr).not.toHaveBeenCalled();
     });
 
@@ -311,8 +320,8 @@ describe('AuthService', () => {
       isVerified: true,
       name: 'Test User',
       createdAt: new Date(),
-      isDeleted:false,
-      username:""
+      isDeleted: false,
+      username: '',
     };
     const mockPublicUser = userToPublicUser(mockUser);
 
@@ -346,7 +355,10 @@ describe('AuthService', () => {
 
       await service.addSessionForUser(userId, sessionId);
 
-      expect(redis.sadd).toHaveBeenCalledWith(`user-sessions:${userId}`, sessionId);
+      expect(redis.sadd).toHaveBeenCalledWith(
+        `user-sessions:${userId}`,
+        sessionId,
+      );
     });
   });
 
@@ -359,7 +371,10 @@ describe('AuthService', () => {
 
       await service.removeSessionForUser(userId, sessionId);
 
-      expect(redis.srem).toHaveBeenCalledWith(`user-sessions:${userId}`, sessionId);
+      expect(redis.srem).toHaveBeenCalledWith(
+        `user-sessions:${userId}`,
+        sessionId,
+      );
     });
   });
 
@@ -375,10 +390,11 @@ describe('AuthService', () => {
       };
       (mockRedis.pipeline as jest.Mock).mockReturnValue(mockPipeline);
 
-
       await service.logoutAll(userId);
 
-      expect(mockRedis.smembers).toHaveBeenCalledWith(`user-sessions:${userId}`);
+      expect(mockRedis.smembers).toHaveBeenCalledWith(
+        `user-sessions:${userId}`,
+      );
       expect(mockRedis.pipeline).toHaveBeenCalled();
       expect(mockPipeline.del).toHaveBeenCalledWith(`sess:${sessionIds[0]}`);
       expect(mockPipeline.del).toHaveBeenCalledWith(`sess:${sessionIds[1]}`);

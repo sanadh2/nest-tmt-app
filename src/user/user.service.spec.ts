@@ -18,7 +18,6 @@ const mockMailService = {
   sendMail: jest.fn(),
 };
 
-
 jest.mock('nodemailer-express-handlebars', () => {
   return jest.fn(() => ({
     compile: jest.fn(),
@@ -61,7 +60,9 @@ describe('UserService', () => {
 
       const result = await service.findUserByIdentifier(identifier);
 
-      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(identifier);
+      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(
+        identifier,
+      );
       expect(result).toEqual(mockUser);
     });
   });
@@ -78,9 +79,14 @@ describe('UserService', () => {
       userRepository.findUserByIdentifier.mockResolvedValue({ id: 'existing' });
 
       await expect(service.createUser(user)).rejects.toThrow(
-        new HttpException('User already exists with email', HttpStatus.BAD_REQUEST),
+        new HttpException(
+          'User already exists with email',
+          HttpStatus.BAD_REQUEST,
+        ),
       );
-      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(user.email);
+      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(
+        user.email,
+      );
     });
 
     it('should throw if username already exists', async () => {
@@ -89,10 +95,17 @@ describe('UserService', () => {
         .mockResolvedValueOnce({ id: 'existing' }); // username check returns existing user
 
       await expect(service.createUser(user)).rejects.toThrow(
-        new HttpException('User already exists with username', HttpStatus.BAD_REQUEST),
+        new HttpException(
+          'User already exists with username',
+          HttpStatus.BAD_REQUEST,
+        ),
       );
-      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(user.email);
-      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(user.username);
+      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(
+        user.email,
+      );
+      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(
+        user.username,
+      );
     });
 
     it('should create user and send verification email', async () => {
@@ -105,8 +118,12 @@ describe('UserService', () => {
 
       const result = await service.createUser(user);
 
-      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(user.email);
-      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(user.username);
+      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(
+        user.email,
+      );
+      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(
+        user.username,
+      );
       expect(userRepository.setVerifyToken).toHaveBeenCalledWith(user.email);
       expect(mailService.sendMail).toHaveBeenCalledWith(
         user.email,
@@ -131,8 +148,12 @@ describe('UserService', () => {
       await service.createUser(userWithoutUsername);
 
       expect(userRepository.findUserByIdentifier).toHaveBeenCalledTimes(1);
-      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(userWithoutUsername.email);
-      expect(userRepository.setVerifyToken).toHaveBeenCalledWith(userWithoutUsername.email);
+      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(
+        userWithoutUsername.email,
+      );
+      expect(userRepository.setVerifyToken).toHaveBeenCalledWith(
+        userWithoutUsername.email,
+      );
       expect(mailService.sendMail).toHaveBeenCalled();
     });
   });
@@ -190,7 +211,9 @@ describe('UserService', () => {
 
       const result = await service.updateUser(userUpdate);
 
-      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(userUpdate.id);
+      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(
+        userUpdate.id,
+      );
       expect(userRepository.updateUser).toHaveBeenCalledWith(userUpdate);
       expect(result).toEqual(userUpdate);
     });
@@ -202,7 +225,7 @@ describe('UserService', () => {
         new HttpException('User not found', HttpStatus.BAD_REQUEST),
       );
       expect(userRepository.updateUser).not.toHaveBeenCalled();
-    }); 
+    });
 
     it('should throw if user is not verified', async () => {
       const notVerifiedUser = { ...userUpdate, isVerified: false };

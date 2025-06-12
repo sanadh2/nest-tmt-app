@@ -6,7 +6,7 @@ import { env } from '../config/env.validation';
 jest.mock('nodemailer');
 
 jest.mock('nodemailer-express-handlebars', () => {
-        return jest.fn();
+  return jest.fn();
 });
 
 describe('MailService', () => {
@@ -30,8 +30,12 @@ describe('MailService', () => {
     service = module.get<MailService>(MailService);
 
     // Spy on logger methods
-    loggerLogSpy = jest.spyOn(service['logger'], 'log').mockImplementation(() => {});
-    loggerErrorSpy = jest.spyOn(service['logger'], 'error').mockImplementation(() => {});
+    loggerLogSpy = jest
+      .spyOn(service['logger'], 'log')
+      .mockImplementation(() => {});
+    loggerErrorSpy = jest
+      .spyOn(service['logger'], 'error')
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {

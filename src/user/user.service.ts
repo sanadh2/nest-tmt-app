@@ -67,7 +67,9 @@ export class UserService {
   }
 
   async updateUser(user: UpdateUser) {
-    const isUserExists = await this.userRepository.findUserByIdentifier(user.id);
+    const isUserExists = await this.userRepository.findUserByIdentifier(
+      user.id,
+    );
     if (!isUserExists || !user.isVerified || user.isDeleted) {
       throw new HttpException('User not found', HttpStatus.BAD_REQUEST);
     }

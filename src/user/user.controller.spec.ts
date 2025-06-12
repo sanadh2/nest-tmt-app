@@ -14,9 +14,8 @@ const mockUserService = {
 };
 
 jest.mock('nodemailer-express-handlebars', () => {
-        return jest.fn();
+  return jest.fn();
 });
-
 
 describe('UserController', () => {
   let controller: UserController;
@@ -44,7 +43,6 @@ describe('UserController', () => {
 
     controller = module.get<UserController>(UserController);
     userService = module.get<UserService>(UserService);
-    
   });
 
   it('should be defined', () => {
@@ -55,8 +53,8 @@ describe('UserController', () => {
     const dto: RegisterDto = {
       email: 'test@example.com',
       password: 'password123',
-      name:"test",
-      username:"test@test"
+      name: 'test',
+      username: 'test@test',
     };
 
     it('should call createUser and return message', async () => {
@@ -77,17 +75,14 @@ describe('UserController', () => {
       id: 'test-user-id',
       email: 'test@example.com',
       name: 'Updated Name',
-      username:"",
-      createdAt:null
+      username: '',
+      createdAt: null,
     };
 
     it('should call updateUser if session userId exists', async () => {
       mockUserService.updateUser.mockResolvedValue(expectedUser);
 
-      const result = await controller.updateUser(
-        dto,
-        mockRequest as Request,
-      );
+      const result = await controller.updateUser(dto, mockRequest as Request);
 
       expect(userService.updateUser).toHaveBeenCalledWith({
         ...dto,
@@ -101,7 +96,9 @@ describe('UserController', () => {
 
       await expect(
         controller.updateUser(dto, mockRequest as Request),
-      ).rejects.toThrow(new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED));
+      ).rejects.toThrow(
+        new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED),
+      );
 
       expect(userService.updateUser).not.toHaveBeenCalled();
     });
@@ -114,8 +111,8 @@ describe('UserController', () => {
         id: 'verified-id',
         email: 'verified@example.com',
         name: 'Verified User',
-        createdAt:null,
-        username:"test@test"
+        createdAt: null,
+        username: 'test@test',
       };
 
       mockUserService.verifyUser.mockResolvedValue(expectedUser);

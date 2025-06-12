@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-  config();
+config();
 
 import { z } from 'zod';
 
@@ -22,6 +22,9 @@ const envSchema = z.object({
   SMTP_FROM: z.string().min(1, 'SMTP_FROM is required'),
   APP_DOMAIN: z.string().url(),
   DEBUG_MODE: z.enum(['false', 'true']).transform((val) => val === 'true'),
+  GOOGLE_CLIENT_ID: z.string(),
+  GOOGLE_CLIENT_SECRET: z.string(),
+  CORS_ORIGIN:z.string(),
 });
 
 type Env = z.infer<typeof envSchema>;
