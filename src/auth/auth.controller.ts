@@ -40,12 +40,11 @@ export class AuthController {
     res.json({ csrfToken: token });
   }
 
-
-
-  @Post()
+  @Post('login')
   @ApiOperation({ summary: 'User Login' })
   @ApiResponse({ status: 200, description: 'User logged in successfully.' })
-  @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 403, description: 'Email not verified' })
   @ApiBody({ type: LoginDto })
   @UseGuards(AuthGuard('local'))
   async login(
@@ -53,21 +52,42 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-      console.log('🟢 Login route reached with:', dto);
-    if (!req.user) {
-      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
-    }
-    const reqUser = req.user;
+    this.logger.debug('Login attempt with dto:', dto);
 
-    await new Promise<void>((resolve, reject) => {
-      req.logIn(reqUser, (err) => {
-        if (err) return reject(err);
-        resolve();
+    if (!req.user) {
+      this.logger.warn('Login failed: No user in request after authentication');
+      throw new HttpException('Authentication failed', HttpStatus.UNAUTHORIZED);
+    }
+
+    try {
+      const user = req.user as PublicUser;
+      await new Promise<void>((resolve, reject) => {
+        req.logIn(user, (err) => {
+          if (err) {
+            this.logger.error('Login error:', err);
+            return reject(err);
+          }
+          resolve();
+        });
       });
-    });
-    req.session.userId = (req.user as PublicUser | undefined)?.id;
-    res.status(HttpStatus.OK);
-    return res.json(req.user);
+
+      req.session.userId = user.id;
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            this.logger.error('Session save error:', err);
+            return reject(err);
+          }
+          resolve();
+        });
+      });
+
+      this.logger.log('User logged in successfully:', dto.identifier);
+      return res.status(HttpStatus.OK).json(user);
+    } catch (error) {
+      this.logger.error('Login process error:', error);
+      throw new HttpException('Login failed', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Get('/google')
@@ -76,11 +96,52 @@ export class AuthController {
 
   @Get('/google/redirect')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req: Request) {
-    return {
-      message: 'User info from Google',
-      user: req.user,
+  async googleAuthRedirect(@Req() req: Request, @Res() res: Response) {
+    const googleUser = req.user as {
+      email: string;
+      lastName: string;
+      firstName: string;
+      id: string;
+      provider: string;
     };
+    let user = await this.authService.getUser(googleUser.email);
+    if (!user) {
+      const createdUser = await this.authService.createUserFromProvider({
+        email: googleUser.email,
+        provider: 'google',
+        name:
+          googleUser.firstName && googleUser.lastName
+            ? googleUser.firstName + ' ' + googleUser.lastName
+            : googleUser.firstName
+              ? googleUser.firstName
+              : googleUser.lastName
+                ? googleUser.lastName
+                : '',
+      });
+      user = createdUser;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      req.logIn(user!, (err) => {
+        if (err) {
+          this.logger.error('Login error after Google OAuth:', err);
+          return reject(err);
+        }
+        resolve();
+      });
+    });
+    req.session.userId = user!.id;
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          this.logger.error('Session save error after Google OAuth:', err);
+          return reject(err);
+        }
+        resolve();
+      });
+    });
+
+    return res.redirect(process.env.FRONTEND_URL!);
   }
 
   @Get('/profile')

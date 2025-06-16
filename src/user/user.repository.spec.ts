@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserRepository } from './user.repository';
 import bcrypt from 'bcrypt';
 import { ObjectId } from 'bson';
-import cryto from 'crypto'; // Note: Your import has a typo - should be crypto
+import cryto from 'crypto';
 import { db } from '../drizzle/db';
 import { CreateUser, users } from '../drizzle/schema';
 import { userToPublicUser } from '../utils/user';
@@ -36,7 +36,6 @@ describe('UserRepository', () => {
   describe('setVerifyToken', () => {
     it('should generate a token, save it to redis and return it', async () => {
       const fakeToken = 'token123';
-      // mock crypto.randomBytes().toString()
       (cryto.randomBytes as jest.Mock).mockReturnValue({
         toString: () => fakeToken,
       });
@@ -89,7 +88,6 @@ describe('UserRepository', () => {
       };
       const fakeId = 'fakeid123';
 
-      // Mock ObjectId to generate consistent id
       jest.spyOn(ObjectId.prototype, 'toHexString').mockReturnValue(fakeId);
       (bcrypt.hashSync as jest.Mock).mockReturnValue('hashedPass');
       (db.insert as jest.Mock).mockReturnValue({
@@ -207,7 +205,7 @@ describe('UserRepository', () => {
 
   describe('deleteUser', () => {
     it('should mark user as deleted', async () => {
-      // Create mocks for the chained methods
+
       const mockWhere = jest.fn().mockResolvedValue(undefined);
       const mockSet = jest.fn().mockReturnValue({
         where: mockWhere,
@@ -216,15 +214,14 @@ describe('UserRepository', () => {
         set: mockSet,
       });
 
-      // Assign the top-level mock
-      (db.update as jest.Mock).mockImplementation(mockUpdate); // Use mockImplementation
+
+      (db.update as jest.Mock).mockImplementation(mockUpdate);
 
       await repo.deleteUser('1');
 
-      // Assertions on the mocks
-      expect(mockUpdate).toHaveBeenCalledWith(users); // Check if update was called with 'users' table
-      expect(mockSet).toHaveBeenCalledWith({ isDeleted: true }); // Check if set was called with the correct values
-      expect(mockWhere).toHaveBeenCalledWith(expect.anything()); // Check if where was called with any argument
+      expect(mockUpdate).toHaveBeenCalledWith(users);
+      expect(mockSet).toHaveBeenCalledWith({ isDeleted: true });
+      expect(mockWhere).toHaveBeenCalledWith(expect.anything());
     });
   });
 });

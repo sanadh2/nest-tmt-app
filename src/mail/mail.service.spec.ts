@@ -17,7 +17,7 @@ describe('MailService', () => {
 
   beforeEach(async () => {
     sendMailMock = jest.fn();
-    // Mock nodemailer.createTransport to return an object with sendMail and use methods
+
     (nodemailer.createTransport as jest.Mock).mockReturnValue({
       sendMail: sendMailMock,
       use: jest.fn(),
@@ -29,7 +29,6 @@ describe('MailService', () => {
 
     service = module.get<MailService>(MailService);
 
-    // Spy on logger methods
     loggerLogSpy = jest
       .spyOn(service['logger'], 'log')
       .mockImplementation(() => {});

@@ -29,10 +29,8 @@ describe('AuthController', () => {
     jest.clearAllMocks();
 
     const mockSession: Partial<Session> & { userId?: string } = {
-      // Required Session properties/methods (even if mocked minimally)
       id: 'mockSessionId',
       cookie: {
-        // Minimal mock for cookie
         originalMaxAge: 0,
         expires: new Date(),
         secure: false,
@@ -42,8 +40,8 @@ describe('AuthController', () => {
         sameSite: undefined,
       },
       regenerate: jest.fn(function (this: Session, cb?: (err: any) => void) {
-        cb?.(null); // Call callback with no error
-        return this; // Return the session object for chaining
+        cb?.(null);
+        return this;
       }) as unknown as Session['regenerate'],
 
       destroy: jest.fn(function (this: Session, cb?: (err: any) => void) {
@@ -112,7 +110,6 @@ describe('AuthController', () => {
         mockResponse as Response,
       );
 
-      // Assert
       expect(authService.verifyLoginCredentials).toHaveBeenCalledWith(loginDto);
       expect(mockRequest.session?.userId).toBe(mockUser.id);
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.OK);
@@ -120,13 +117,13 @@ describe('AuthController', () => {
     });
 
     it('should handle failed login attempts', async () => {
-      // Arrange
+
       const errorMessage = 'Invalid credentials';
       (authService.verifyLoginCredentials as jest.Mock).mockRejectedValue(
         new HttpException(errorMessage, HttpStatus.BAD_REQUEST),
       );
 
-      // Act & Assert - Expect the controller to re-throw the HttpException
+
       await expect(
         controller.login(
           loginDto,
@@ -135,7 +132,7 @@ describe('AuthController', () => {
         ),
       ).rejects.toThrow(HttpException);
 
-      expect(mockResponse.status).not.toHaveBeenCalled(); // Response shouldn't be sent by controller
+      expect(mockResponse.status).not.toHaveBeenCalled();
       expect(mockResponse.json).not.toHaveBeenCalled();
     });
   });
@@ -150,28 +147,27 @@ describe('AuthController', () => {
       mockRequest.session!.userId = mockUser.id;
       (authService.getUser as jest.Mock).mockResolvedValue(mockUser);
 
-      // Act
+
       await controller.me(mockRequest as Request, mockResponse as Response);
 
-      // Assert
+
       expect(authService.getUser).toHaveBeenCalledWith(mockUser.id);
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(mockResponse.json).toHaveBeenCalledWith({ user: mockUser });
     });
 
     it('should throw UnauthorizedException if not authenticated', async () => {
-      // Arrange
-      mockRequest.session!.userId = undefined; // Simulate no logged-in user
 
-      // Act & Assert
+      mockRequest.session!.userId = undefined;
+
       await expect(
         controller.me(mockRequest as Request, mockResponse as Response),
       ).rejects.toThrow(
         new HttpException('Unauthorised', HttpStatus.UNAUTHORIZED),
       );
 
-      expect(authService.getUser).not.toHaveBeenCalled(); // getUser should not be called
-      expect(mockResponse.status).not.toHaveBeenCalled(); // No response sent
+      expect(authService.getUser).not.toHaveBeenCalled();
+      expect(mockResponse.status).not.toHaveBeenCalled();
       expect(mockResponse.json).not.toHaveBeenCalled();
     });
   });

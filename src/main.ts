@@ -10,10 +10,9 @@ import { ValidationPipe } from '@nestjs/common';
 import './config/env.validation';
 import { env } from './config/env.validation';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { CsrfMiddleware } from './middleware/csrf.middleware';
 import cookieParser from 'cookie-parser';
 import passport from 'passport';
-import { SessionRenewalMiddleware } from './middleware/renewSession.middleware';
+import morgan from 'morgan';
 
 export async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -31,19 +30,31 @@ export async function bootstrap() {
     app.useLogger(['log', 'error', 'warn']);
   }
 
+  if (env.NODE_ENV !== 'production') {
+    app.use(morgan('dev'));
+  }
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
   const config = new DocumentBuilder()
     .setTitle('Auth Microservice')
     .setDescription('Handles user registration, login, session-based auth.')
     .setVersion('1.0')
     .addCookieAuth('connect.sid')
     .addApiKey(
-    {
-      type: 'apiKey',
-      name: 'X-CSRF-Token',
-      in: 'header',
-    },
-    'csrf-token',
-  )
+      {
+        type: 'apiKey',
+        name: 'X-CSRF-Token',
+        in: 'header',
+      },
+      'csrf-token',
+    )
     .build();
 
   const redisClient = new Redis({
@@ -66,30 +77,22 @@ export async function bootstrap() {
       secret: env.SESSION_SECRET,
       resave: false,
       saveUninitialized: false,
+      name: 'connect.sid',
       cookie: {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
+        sameSite: 'lax',
         maxAge: 1000 * 60 * 60 * 24,
+        path: '/',
       },
     }),
   );
 
-app.use(new SessionRenewalMiddleware().use  );
-
   app.use(passport.initialize());
   app.use(passport.session());
 
-  app.use(new CsrfMiddleware().use);
-
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
 
   app.useGlobalFilters(new AllExceptionsFilter());
 

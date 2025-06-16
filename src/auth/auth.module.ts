@@ -12,20 +12,24 @@ import { LocalStrategy } from 'src/lib/passport/local.strategy';
 import { AuthenticatedGuard } from './auth.guard';
 
 @Module({
-  controllers: [AuthController],
-  providers: [
-    AuthService,
-    UserRepository,
-    GoogleStrategy,
-    SessionSerializer,
-    LocalStrategy,
-    AuthenticatedGuard,
-  ],
   imports: [
     MailModule,
     RedisModule,
     UserModule,
-    PassportModule.register({ session: true }),
+    PassportModule.register({
+      session: true,
+      defaultStrategy: 'local',
+    }),
   ],
+  controllers: [AuthController],
+  providers: [
+    AuthService,
+    UserRepository,
+    LocalStrategy,
+    GoogleStrategy,
+    SessionSerializer,
+    AuthenticatedGuard,
+  ],
+  exports: [AuthService],
 })
 export class AuthModule {}

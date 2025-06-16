@@ -2,7 +2,6 @@ import { PassportSerializer } from '@nestjs/passport';
 import { Injectable } from '@nestjs/common';
 import { PublicUser } from 'src/drizzle/schema';
 import { UserService } from 'src/user/user.service';
-import { userToPublicUser } from 'src/utils/user';
 
 @Injectable()
 export class SessionSerializer extends PassportSerializer {

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ObjectId } from 'bson';
 import { eq, or } from 'drizzle-orm';
 import { db } from '../drizzle/db';
@@ -16,6 +16,8 @@ import { userToPublicUser } from '../utils/user';
 
 @Injectable()
 export class UserRepository {
+  private readonly logger = new Logger(UserRepository.name);
+
   constructor(@Inject('REDIS_CLIENT') private readonly redisClient: Redis) {}
 
   async setVerifyToken(email: string) {
@@ -43,18 +45,31 @@ export class UserRepository {
   }
 
   async findUserByIdentifier(identifier: string) {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(
-        or(
-          eq(users.username, identifier),
-          eq(users.email, identifier),
-          eq(users.id, identifier),
-        ),
-      );
+    this.logger.debug(`Looking up user by identifier: ${identifier}`);
 
-    return user ?? null;
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(
+          or(
+            eq(users.username, identifier),
+            eq(users.email, identifier),
+            eq(users.id, identifier),
+          ),
+        );
+
+      if (user) {
+        this.logger.debug(`User found: ${identifier}`);
+      } else {
+        this.logger.debug(`No user found for identifier: ${identifier}`);
+      }
+
+      return user ?? null;
+    } catch (error) {
+      this.logger.error(`Error looking up user ${identifier}:`, error);
+      throw error;
+    }
   }
 
   async updateUser(user: UpdateUser): Promise<PublicUser | null> {

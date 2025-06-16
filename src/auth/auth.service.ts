@@ -34,23 +34,37 @@ export class AuthService {
     identifier: string;
     password: string;
   }): Promise<User> {
-    const user = await this.userRepository.findUserByIdentifier(identifier);
-    if (!user) throw new HttpException('user not found', HttpStatus.NOT_FOUND);
+    this.logger.debug(`Attempting to verify credentials for: ${identifier}`);
 
+    const user = await this.userRepository.findUserByIdentifier(identifier);
+    if (!user) {
+      this.logger.warn(
+        `Login failed: No user found with identifier ${identifier}`,
+      );
+      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+    }
+
+    this.logger.debug(
+      `User found: ${identifier}, checking verification status`,
+    );
     if (!user.isVerified) {
+      this.logger.warn(`Login failed: Unverified user ${identifier}`);
       const token = crypto.randomUUID();
       await this.redis.set('verify-token:' + token, user.id, 'EX', 3600);
       throw new HttpException(
-        'user is not verified, please verify',
-        HttpStatus.BAD_REQUEST,
+        'Please verify your email before logging in',
+        HttpStatus.FORBIDDEN,
       );
     }
+
+    this.logger.debug(`Verifying password for user: ${identifier}`);
     const isSamePassword = await bcrypt.compare(password, user.password);
-    if (!isSamePassword)
-      throw new HttpException(
-        'password does not match',
-        HttpStatus.BAD_REQUEST,
-      );
+    if (!isSamePassword) {
+      this.logger.warn(`Login failed: Invalid password for user ${identifier}`);
+      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+    }
+
+    this.logger.log(`User ${identifier} authenticated successfully`);
     return user;
   }
 
@@ -142,5 +156,30 @@ export class AuthService {
         `No active sessions found for user ${userId} to log out from all devices.`,
       );
     }
+  }
+
+  async createUserFromProvider({
+    email,
+    name,
+    provider,
+  }: {
+    email: string;
+    name: string;
+    provider: string;
+  }): Promise<PublicUser> {
+    const existingUser = await this.userRepository.findUserByIdentifier(email);
+
+    if (existingUser) {
+      return userToPublicUser(existingUser);
+    }
+
+    const userId = await this.userRepository.createUser({
+      email,
+      name,
+      password: '',
+      isVerified: true,
+    });
+
+    return this.userRepository.findUserByIdentifier(userId);
   }
 }

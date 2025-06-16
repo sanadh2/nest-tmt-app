@@ -91,8 +91,8 @@ describe('UserService', () => {
 
     it('should throw if username already exists', async () => {
       userRepository.findUserByIdentifier
-        .mockResolvedValueOnce(null) // email check returns null
-        .mockResolvedValueOnce({ id: 'existing' }); // username check returns existing user
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'existing' });
 
       await expect(service.createUser(user)).rejects.toThrow(
         new HttpException(

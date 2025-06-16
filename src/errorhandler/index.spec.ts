@@ -16,40 +16,38 @@ describe('AllExceptionsFilter', () => {
   let mockArgumentsHost: ArgumentsHost;
 
   beforeEach(async () => {
-    // Mock the Logger
     mockLogger = new Logger();
     jest.spyOn(mockLogger, 'error').mockImplementation(() => {});
     jest.spyOn(mockLogger, 'warn').mockImplementation(() => {});
     jest.spyOn(mockLogger, 'debug').mockImplementation(() => {});
 
-    // Create a testing module to inject the mocked Logger
+
     const moduleRef = await Test.createTestingModule({
       providers: [
         AllExceptionsFilter,
         {
-          provide: Logger, // Provide the mocked Logger
+          provide: Logger,
           useValue: mockLogger,
         },
       ],
     }).compile();
 
     filter = moduleRef.get<AllExceptionsFilter>(AllExceptionsFilter);
-    // Manually assign the mocked logger if not using injection
+
     (filter as any)['logger'] = mockLogger;
 
-    // Mock Express Response object
     mockResponse = {
-      status: jest.fn().mockReturnThis(), // allow chaining .status().json()
+      status: jest.fn().mockReturnThis(),
       json: jest.fn(),
     };
 
-    // Mock Express Request object
+
     mockRequest = {
       method: 'GET',
       url: '/test-url',
     };
 
-    // Mock ArgumentsHost
+
     mockArgumentsHost = {
       switchToHttp: jest.fn().mockReturnValue({
         getResponse: jest.fn().mockReturnValue(mockResponse),
@@ -57,7 +55,7 @@ describe('AllExceptionsFilter', () => {
         getNext: jest.fn(),
       }),
       getType: jest.fn().mockReturnValue('http'),
-    } as unknown as ArgumentsHost; // Type assertion to satisfy ArgumentsHost interface
+    } as unknown as ArgumentsHost;
   });
 
   afterEach(() => {
@@ -68,7 +66,6 @@ describe('AllExceptionsFilter', () => {
     expect(filter).toBeDefined();
   });
 
-  // ---
 
   describe('catch', () => {
     it('should handle HttpException and return appropriate status and message', () => {
@@ -92,7 +89,6 @@ describe('AllExceptionsFilter', () => {
       expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
-    // ---
 
     it('should handle generic Error and return 500 Internal Server Error', () => {
       const genericError = new Error('Something went wrong');
@@ -106,16 +102,15 @@ describe('AllExceptionsFilter', () => {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         timestamp: expect.any(String),
         path: mockRequest.url,
-        error: 'Internal server error', // Default message for non-HttpException
+        error: 'Internal server error',
       });
       expect(mockLogger.error).toHaveBeenCalledWith(
         `HTTP 500 - GET /test-url - "Internal server error"`,
       );
-      expect(mockLogger.warn).toHaveBeenCalledWith('Internal server error'); // For the generic error instance
+      expect(mockLogger.warn).toHaveBeenCalledWith('Internal server error');
       expect(mockLogger.debug).toHaveBeenCalledWith(genericError.stack);
     });
 
-    // ---
 
     it('should log an error for 5xx status codes', () => {
       const serverError = new HttpException(
@@ -149,7 +144,6 @@ describe('AllExceptionsFilter', () => {
       expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
-    // ---
 
     it('should include exception stack in debug log if it is an Error instance', () => {
       const errorWithStack = new Error('Detailed error message');
@@ -160,13 +154,12 @@ describe('AllExceptionsFilter', () => {
       expect(mockLogger.debug).toHaveBeenCalledWith(
         'Mocked stack trace\nline 1\nline 2',
       );
-      expect(mockLogger.warn).toHaveBeenCalledWith('Internal server error'); // Default message
+      expect(mockLogger.warn).toHaveBeenCalledWith('Internal server error');
     });
 
-    // ---
 
     it('should handle non-Error, non-HttpException types gracefully', () => {
-      const unknownException = 'Just a string error'; // Not an Error or HttpException
+      const unknownException = 'Just a string error';
 
       filter.catch(unknownException, mockArgumentsHost);
 
@@ -182,7 +175,7 @@ describe('AllExceptionsFilter', () => {
       expect(mockLogger.error).toHaveBeenCalledWith(
         `HTTP 500 - GET /test-url - "Internal server error"`,
       );
-      expect(mockLogger.warn).not.toHaveBeenCalledWith(unknownException); // Should not log string directly
+      expect(mockLogger.warn).not.toHaveBeenCalledWith(unknownException);
       expect(mockLogger.debug).not.toHaveBeenCalled();
     });
   });
