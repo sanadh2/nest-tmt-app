@@ -82,6 +82,8 @@ export class AuthController {
         });
       });
 
+      await this.authService.addSessionForUser(user.id, req.sessionID);
+
       this.logger.log('User logged in successfully:', dto.identifier);
       return res.status(HttpStatus.OK).json(user);
     } catch (error) {
@@ -141,16 +143,73 @@ export class AuthController {
       });
     });
 
+    await this.authService.addSessionForUser(user.id, req.sessionID);
     return res.redirect(process.env.FRONTEND_URL!);
   }
 
   @Get('/profile')
   @UseGuards(AuthenticatedGuard)
-  getProfile(@Req() req: Request) {
+  async getProfile(@Req() req: Request) {
     if (!req.user) {
       throw new HttpException('Unauthorised', HttpStatus.UNAUTHORIZED);
     }
     const userId = req.user.id;
     return this.authService.getUser(userId);
+  }
+
+  @Post('/logout')
+  @UseGuards(AuthenticatedGuard)
+  @ApiOperation({ summary: 'Logout from current device' })
+  @ApiResponse({
+    status: 200,
+    description: 'User logged out from current session',
+  })
+  async logout(@Req() req: Request, @Res() res: Response) {
+    const userId = req.user?.id;
+    const sessionId = req.sessionID;
+    if (!userId || !sessionId) {
+      throw new HttpException('Oh, oh!', HttpStatus.UNAUTHORIZED);
+    }
+    await this.authService.removeSessionForUser(userId, sessionId);
+
+    req.session.destroy((err) => {
+      if (err) {
+        throw new HttpException(
+          'Failed to logout',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      res.clearCookie('connect.sid');
+      res.status(HttpStatus.OK);
+      return res.json({ message: 'Logged out from current device' });
+    });
+  }
+
+  @Post('/logout-all')
+  @UseGuards(AuthenticatedGuard)
+  @ApiOperation({ summary: 'Logout from all devices' })
+  @ApiResponse({
+    status: 200,
+    description: 'User logged out from all sessions',
+  })
+  async logoutAll(@Req() req: Request, @Res() res: Response) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new HttpException('Oh, oh!', HttpStatus.UNAUTHORIZED);
+    }
+    await this.authService.logoutAll(userId);
+
+    req.session.destroy((err) => {
+      if (err) {
+        throw new HttpException(
+          'Failed to logout',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      res.clearCookie('connect.sid');
+      return res
+        .status(HttpStatus.OK)
+        .json({ message: 'Logged out from all devices' });
+    });
   }
 }

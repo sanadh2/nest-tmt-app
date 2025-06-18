@@ -117,12 +117,10 @@ describe('AuthController', () => {
     });
 
     it('should handle failed login attempts', async () => {
-
       const errorMessage = 'Invalid credentials';
       (authService.verifyLoginCredentials as jest.Mock).mockRejectedValue(
         new HttpException(errorMessage, HttpStatus.BAD_REQUEST),
       );
-
 
       await expect(
         controller.login(
@@ -147,9 +145,7 @@ describe('AuthController', () => {
       mockRequest.session!.userId = mockUser.id;
       (authService.getUser as jest.Mock).mockResolvedValue(mockUser);
 
-
       await controller.me(mockRequest as Request, mockResponse as Response);
-
 
       expect(authService.getUser).toHaveBeenCalledWith(mockUser.id);
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.OK);
@@ -157,7 +153,6 @@ describe('AuthController', () => {
     });
 
     it('should throw UnauthorizedException if not authenticated', async () => {
-
       mockRequest.session!.userId = undefined;
 
       await expect(

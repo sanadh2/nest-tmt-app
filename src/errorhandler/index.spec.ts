@@ -21,7 +21,6 @@ describe('AllExceptionsFilter', () => {
     jest.spyOn(mockLogger, 'warn').mockImplementation(() => {});
     jest.spyOn(mockLogger, 'debug').mockImplementation(() => {});
 
-
     const moduleRef = await Test.createTestingModule({
       providers: [
         AllExceptionsFilter,
@@ -41,12 +40,10 @@ describe('AllExceptionsFilter', () => {
       json: jest.fn(),
     };
 
-
     mockRequest = {
       method: 'GET',
       url: '/test-url',
     };
-
 
     mockArgumentsHost = {
       switchToHttp: jest.fn().mockReturnValue({
@@ -65,7 +62,6 @@ describe('AllExceptionsFilter', () => {
   it('should be defined', () => {
     expect(filter).toBeDefined();
   });
-
 
   describe('catch', () => {
     it('should handle HttpException and return appropriate status and message', () => {
@@ -89,7 +85,6 @@ describe('AllExceptionsFilter', () => {
       expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
-
     it('should handle generic Error and return 500 Internal Server Error', () => {
       const genericError = new Error('Something went wrong');
 
@@ -110,7 +105,6 @@ describe('AllExceptionsFilter', () => {
       expect(mockLogger.warn).toHaveBeenCalledWith('Internal server error');
       expect(mockLogger.debug).toHaveBeenCalledWith(genericError.stack);
     });
-
 
     it('should log an error for 5xx status codes', () => {
       const serverError = new HttpException(
@@ -144,7 +138,6 @@ describe('AllExceptionsFilter', () => {
       expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
-
     it('should include exception stack in debug log if it is an Error instance', () => {
       const errorWithStack = new Error('Detailed error message');
       errorWithStack.stack = 'Mocked stack trace\nline 1\nline 2';
@@ -156,7 +149,6 @@ describe('AllExceptionsFilter', () => {
       );
       expect(mockLogger.warn).toHaveBeenCalledWith('Internal server error');
     });
-
 
     it('should handle non-Error, non-HttpException types gracefully', () => {
       const unknownException = 'Just a string error';

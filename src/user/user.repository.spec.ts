@@ -205,7 +205,6 @@ describe('UserRepository', () => {
 
   describe('deleteUser', () => {
     it('should mark user as deleted', async () => {
-
       const mockWhere = jest.fn().mockResolvedValue(undefined);
       const mockSet = jest.fn().mockReturnValue({
         where: mockWhere,
@@ -213,7 +212,6 @@ describe('UserRepository', () => {
       const mockUpdate = jest.fn().mockReturnValue({
         set: mockSet,
       });
-
 
       (db.update as jest.Mock).mockImplementation(mockUpdate);
 

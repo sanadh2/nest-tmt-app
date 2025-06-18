@@ -295,7 +295,7 @@ describe('AuthService', () => {
       (userRepository.findUserByIdentifier as jest.Mock).mockResolvedValue(
         mockUser,
       );
-      (redis.incr as jest.Mock).mockResolvedValue(4); // 4 attempts
+      (redis.incr as jest.Mock).mockResolvedValue(4);
 
       await expect(
         service.resendVerificationEmail(identifier, projectId),
@@ -305,7 +305,7 @@ describe('AuthService', () => {
           HttpStatus.TOO_MANY_REQUESTS,
         ),
       );
-      expect(redis.expire).not.toHaveBeenCalled(); // expire is only called on the first attempt
+      expect(redis.expire).not.toHaveBeenCalled();
       expect(crypto.randomUUID).not.toHaveBeenCalled();
       expect(redis.set).not.toHaveBeenCalled();
     });
