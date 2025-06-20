@@ -180,6 +180,11 @@ export class AuthService {
       isVerified: true,
     });
 
-    return this.userRepository.findUserByIdentifier(userId);
+    const newUser = await this.userRepository.findUserByIdentifier(userId);
+    if (!newUser) {
+      throw new HttpException('Failed to create user', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    return userToPublicUser(newUser);
   }
 }

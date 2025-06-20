@@ -11,6 +11,7 @@ import { userToPublicUser } from '../utils/user';
 const mockUserRepository = {
   findUserByIdentifier: jest.fn(),
   verifyUser: jest.fn(),
+  createUser: jest.fn(),
 };
 
 jest.mock('nodemailer-express-handlebars', () => {
@@ -119,7 +120,7 @@ describe('AuthService', () => {
       await expect(
         service.verifyLoginCredentials({ identifier, password }),
       ).rejects.toThrow(
-        new HttpException('user not found', HttpStatus.NOT_FOUND),
+        new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED),
       );
       expect(bcrypt.compare).not.toHaveBeenCalled();
     });
@@ -136,8 +137,8 @@ describe('AuthService', () => {
         service.verifyLoginCredentials({ identifier, password }),
       ).rejects.toThrow(
         new HttpException(
-          'user is not verified, please verify',
-          HttpStatus.BAD_REQUEST,
+          'Please verify your email before logging in',
+          HttpStatus.FORBIDDEN,
         ),
       );
       expect(redis.set).toHaveBeenCalledWith(
@@ -158,7 +159,7 @@ describe('AuthService', () => {
       await expect(
         service.verifyLoginCredentials({ identifier, password }),
       ).rejects.toThrow(
-        new HttpException('password does not match', HttpStatus.BAD_REQUEST),
+        new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED),
       );
     });
   });
@@ -409,6 +410,114 @@ describe('AuthService', () => {
 
       expect(redis.smembers).toHaveBeenCalledWith(`user-sessions:${userId}`);
       expect(redis.pipeline).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createUserFromProvider', () => {
+    const providerData = {
+      email: 'google@example.com',
+      name: 'John Doe',
+      provider: 'google',
+    };
+
+    const mockExistingUser: User = {
+      id: 'existingUserId',
+      email: providerData.email,
+      password: 'hashedPassword',
+      isVerified: true,
+      name: providerData.name,
+      createdAt: new Date(),
+      isDeleted: false,
+      username: null,
+    };
+
+    const mockNewUser: User = {
+      id: 'newUserId',
+      email: providerData.email,
+      password: '',
+      isVerified: true,
+      name: providerData.name,
+      createdAt: new Date(),
+      isDeleted: false,
+      username: null,
+    };
+
+    it('should return existing user if user already exists', async () => {
+      (userRepository.findUserByIdentifier as jest.Mock).mockResolvedValue(
+        mockExistingUser,
+      );
+
+      const result = await service.createUserFromProvider(providerData);
+
+      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(
+        providerData.email,
+      );
+      expect(userRepository.createUser).not.toHaveBeenCalled();
+      expect(result).toEqual(userToPublicUser(mockExistingUser));
+    });
+
+    it('should create new user and return public user if user does not exist', async () => {
+      (userRepository.findUserByIdentifier as jest.Mock)
+        .mockResolvedValueOnce(null) // First call returns null (user not found)
+        .mockResolvedValueOnce(mockNewUser); // Second call returns the created user
+      (userRepository.createUser as jest.Mock).mockResolvedValue(mockNewUser.id);
+
+      const result = await service.createUserFromProvider(providerData);
+
+      expect(userRepository.findUserByIdentifier).toHaveBeenCalledWith(
+        providerData.email,
+      );
+      expect(userRepository.createUser).toHaveBeenCalledWith({
+        email: providerData.email,
+        name: providerData.name,
+        password: '',
+        isVerified: true,
+      });
+      // userToPublicUser excludes isDeleted, isVerified, and password
+      const expectedPublicUser = {
+        id: mockNewUser.id,
+        email: mockNewUser.email,
+        name: mockNewUser.name,
+        createdAt: mockNewUser.createdAt,
+        username: mockNewUser.username,
+      };
+      expect(result).toEqual(expectedPublicUser);
+    });
+
+    it('should handle user creation with empty name', async () => {
+      const providerDataWithEmptyName = {
+        email: 'google@example.com',
+        name: '',
+        provider: 'google',
+      };
+
+      const mockNewUserWithEmptyName = {
+        ...mockNewUser,
+        name: '',
+      };
+
+      (userRepository.findUserByIdentifier as jest.Mock)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(mockNewUserWithEmptyName);
+      (userRepository.createUser as jest.Mock).mockResolvedValue(mockNewUser.id);
+
+      const result = await service.createUserFromProvider(providerDataWithEmptyName);
+
+      expect(userRepository.createUser).toHaveBeenCalledWith({
+        email: providerDataWithEmptyName.email,
+        name: '',
+        password: '',
+        isVerified: true,
+      });
+      // userToPublicUser excludes isDeleted, isVerified, and password
+      const expectedPublicUser = {
+        id: mockNewUserWithEmptyName.id,
+        email: mockNewUserWithEmptyName.email,
+        name: mockNewUserWithEmptyName.name,
+        createdAt: mockNewUserWithEmptyName.createdAt,
+        username: mockNewUserWithEmptyName.username,
+      };
+      expect(result).toEqual(expectedPublicUser);
     });
   });
 });
